@@ -1,6 +1,6 @@
 # ⛁ DB Suites
 
-This library contains a embeddable DB suite that will use [testcontainers](https://golang.testcontainers.org/modules/postgres/) to spin up a database server and
+This library contains a embeddable DB [suite](https://github.com/stretchr/testify?tab=readme-ov-file#suite-package) that uses [testcontainers](https://golang.testcontainers.org/modules/postgres/) to spin up a database server and
 create a fresh isolated database per test.
 
 ## ⬇️ Installation
