@@ -5,7 +5,9 @@ create a fresh isolated database per test.
 
 ## ⬇️ Installation
 
-`go get github.com/survivorbat/go-db-suite`
+```bash
+go get github.com/survivorbat/go-db-suite
+```
 
 ## 📋 Usage
 
