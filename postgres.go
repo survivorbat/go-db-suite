@@ -67,7 +67,7 @@ func (s *Postgres) SetupTest() {
 	require.NoError(t, err)
 
 	s.cancel = func() error {
-		_, err := s.suiteDB.ExecContext(t.Context(), "DROP DATABASE "+dbName)
+		_, err := s.suiteDB.ExecContext(t.Context(), "DROP DATABASE "+dbName+" WITH (FORCE)")
 		return err
 	}
 }
