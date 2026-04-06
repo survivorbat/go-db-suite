@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"strings"
 
+	_ "github.com/lib/pq" // Ensure postgres is available
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	postgrescontainer "github.com/testcontainers/testcontainers-go/modules/postgres"
