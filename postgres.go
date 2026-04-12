@@ -2,7 +2,7 @@ package dbsuite
 
 import (
 	"database/sql"
-	"strings"
+	"net/url"
 
 	_ "github.com/lib/pq" // Ensure postgres is available
 	"github.com/stretchr/testify/require"
@@ -62,9 +62,12 @@ func (s *Postgres) SetupTest() {
 	_, err := s.suiteDB.ExecContext(t.Context(), "CREATE DATABASE "+dbName+";")
 	require.NoError(t, err)
 
-	dbConnectionString := strings.ReplaceAll(s.suiteConnectionString, "/postgres?", "/"+dbName+"?")
+	dbConnectionURL, err := url.Parse(s.suiteConnectionString)
+	require.NoError(t, err)
 
-	s.DB, err = sql.Open("postgres", dbConnectionString)
+	dbConnectionURL.Path = "/" + dbName
+
+	s.DB, err = sql.Open("postgres", dbConnectionURL.String())
 	require.NoError(t, err)
 
 	s.cancel = func() error {

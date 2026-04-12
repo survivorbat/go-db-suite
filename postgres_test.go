@@ -1,8 +1,8 @@
 package dbsuite
 
 import (
+	"context"
 	"database/sql"
-	"strings"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -28,22 +28,22 @@ func (p *PostgresTestSuite) TestDatabaseIsCreated() {
 	err := row.Scan(&result)
 	require.NoError(t, err)
 
-	assert.Equal(t, "testpostgrestestdatabaseiscreated", result)
+	assert.Equal(t, toSafeDBName(t.Name()), result)
 }
 
 func (p *PostgresTestSuite) TestDatabaseIsDeletedAfterwards() {
 	t := p.T()
 	// Arrange
-	dbString := strings.ReplaceAll(p.suiteConnectionString, "/postgres?", "/testpostgrestestdatabaseiscreated?")
+	dbName := toSafeDBName(t.Name())
 
-	db, err := sql.Open("postgres", dbString)
-	require.NoError(t, err)
+	// This must be run AFTER TearDown, hence the weird construction. t.Context is also cancelled at this point
+	t.Cleanup(func() {
+		// Act
+		err := p.suiteDB.QueryRowContext(context.Background(), "SELECT datname FROM pg_database WHERE datname = $1", dbName).Scan(new(""))
 
-	// Act
-	row := db.QueryRowContext(t.Context(), "select current_database()")
-
-	// Assert
-	require.ErrorContains(t, row.Err(), "does not exist")
+		// Assert
+		assert.ErrorIs(t, err, sql.ErrNoRows)
+	})
 }
 
 func TestPostgres(t *testing.T) {
