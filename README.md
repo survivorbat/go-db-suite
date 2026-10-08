@@ -65,6 +65,13 @@ func TestCupcakeRepositorySuite(t *testing.T) {
 }
 ```
 
+### Singleton approach
+
+There's also a `SinglePostgres` struct available, which uses a single package-level database container.
+This may be useful when your codebase contains multiple dbsuites in a package to
+remove the overhead of spinning up multiple containers.
+Do make sure that your suites are run using `t.Parallel`.
+
 ## 🔭 Plans
 
 - More configuration options

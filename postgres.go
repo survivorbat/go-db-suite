@@ -2,7 +2,6 @@ package dbsuite
 
 import (
 	"database/sql"
-	"net/url"
 
 	_ "github.com/lib/pq" // Ensure postgres is available
 	"github.com/stretchr/testify/require"
@@ -25,9 +24,6 @@ type Postgres struct {
 	// suiteConnectionString is used to determine the test-specific connection string
 	suiteConnectionString string
 
-	// suiteDB is the top-level connection used to create and drop databases
-	suiteDB *sql.DB
-
 	// cancelSuite will cancel the entire suite and terminate the container
 	cancelSuite func() error
 }
@@ -45,9 +41,6 @@ func (s *Postgres) SetupSuite() {
 
 	s.suiteConnectionString = container.MustConnectionString(t.Context(), "sslmode=disable")
 
-	s.suiteDB, err = sql.Open("postgres", s.suiteConnectionString)
-	require.NoError(t, err)
-
 	s.cancelSuite = func() error {
 		return container.Terminate(t.Context())
 	}
@@ -57,33 +50,19 @@ func (s *Postgres) SetupSuite() {
 func (s *Postgres) SetupTest() {
 	t := s.T()
 
-	dbName := toSafeDBName(t.Name())
-
-	_, err := s.suiteDB.ExecContext(t.Context(), "CREATE DATABASE "+dbName+";")
+	db, cancel, err := ensureDatabase(t.Context(), t.Name(), s.suiteConnectionString)
 	require.NoError(t, err)
 
-	dbConnectionURL, err := url.Parse(s.suiteConnectionString)
-	require.NoError(t, err)
-
-	dbConnectionURL.Path = "/" + dbName
-
-	s.DB, err = sql.Open("postgres", dbConnectionURL.String())
-	require.NoError(t, err)
-
-	s.cancel = func() error {
-		_, err := s.suiteDB.ExecContext(t.Context(), "DROP DATABASE "+dbName+" WITH (FORCE)")
-		return err
-	}
+	s.DB = db
+	s.cancel = cancel
 }
 
 // TearDownTest will close the connection and call the cancel function
 func (s *Postgres) TearDownTest() {
 	t := s.T()
 
-	err := s.DB.Close()
-	require.NoError(t, err)
-
-	err = s.cancel()
+	// DB is closed from the cancel function in
+	err := s.cancel()
 	require.NoError(t, err)
 }
 
@@ -91,9 +70,6 @@ func (s *Postgres) TearDownTest() {
 func (s *Postgres) TearDownSuite() {
 	t := s.T()
 
-	err := s.suiteDB.Close()
-	require.NoError(t, err)
-
-	err = s.cancelSuite()
+	err := s.cancelSuite()
 	require.NoError(t, err)
 }

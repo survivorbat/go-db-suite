@@ -4,7 +4,9 @@ linters:
   disable:
     - depguard
     - exhaustruct
+    - exhaustruct_v5
     - gochecknoglobals
+    - gomodguard
     - godot
     - godox
     - lll
