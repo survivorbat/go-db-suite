@@ -38,7 +38,7 @@ func TestEnsureDatabase_CreatesDatabaseAsExpected(t *testing.T) {
 			connectionString := container.MustConnectionString(t.Context(), "sslmode=disable")
 
 			// Act
-			db, cancel, err := ensureDatabase(t.Context(), t.Name(), connectionString)
+			db, cancel, err := EnsureDatabase(t.Context(), t.Name(), connectionString)
 
 			// Assert
 			require.NoError(t, err)
@@ -75,7 +75,7 @@ func TestEnsureDatabase_CancelDeletesAndClosesDatabase(t *testing.T) {
 			// Arrange
 			suiteConnectionString := container.MustConnectionString(t.Context(), "sslmode=disable")
 
-			db, cancel, err := ensureDatabase(t.Context(), t.Name(), suiteConnectionString)
+			db, cancel, err := EnsureDatabase(t.Context(), t.Name(), suiteConnectionString)
 			require.NoError(t, err)
 			require.NotNil(t, cancel)
 

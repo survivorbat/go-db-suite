@@ -77,7 +77,7 @@ func (s *SinglePostgres) SetupSuite() {
 func (s *SinglePostgres) SetupTest() {
 	t := s.T()
 
-	db, cancel, err := ensureDatabase(t.Context(), t.Name(), s.suiteConnectionString)
+	db, cancel, err := EnsureDatabase(t.Context(), t.Name(), s.suiteConnectionString)
 	require.NoError(t, err)
 
 	s.DB = db

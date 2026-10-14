@@ -32,10 +32,11 @@ func toSafeDBName(in string) string {
 // using the test context when running the drop command.
 const dropTimeout = 5 * time.Second
 
-// ensureDatabase creates a database for the given test name. It uses the suite connection string
-// to create it and returns a new connection object
-func ensureDatabase(ctx context.Context, testName string, connectionString string) (*sql.DB, func() error, error) {
-	dbName := toSafeDBName(testName)
+// EnsureDatabase creates a database for the given (test) name. It uses the suite connection string
+// to create it and returns a new connection object with a cancel func. This method is exposed to allow manual
+// creation of databases for more complex test setups.
+func EnsureDatabase(ctx context.Context, name string, connectionString string) (*sql.DB, func() error, error) {
+	dbName := toSafeDBName(name)
 
 	suiteDB, err := sql.Open("postgres", connectionString)
 	if err != nil {
