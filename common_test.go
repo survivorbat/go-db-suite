@@ -2,6 +2,7 @@ package dbsuite
 
 import (
 	"database/sql"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,8 +38,16 @@ func TestEnsureDatabase_CreatesDatabaseAsExpected(t *testing.T) {
 			// Arrange
 			connectionString := container.MustConnectionString(t.Context(), "sslmode=disable")
 
+			db, err := sql.Open("postgres", connectionString)
+			require.NoError(t, err)
+
+			t.Cleanup(func() { _ = db.Close() })
+
+			connectionURL, err := url.Parse(connectionString)
+			require.NoError(t, err)
+
 			// Act
-			db, cancel, err := EnsureDatabase(t.Context(), t.Name(), connectionString)
+			db, cancel, err := ensureDatabase(t.Context(), db, connectionURL, t.Name())
 
 			// Assert
 			require.NoError(t, err)
@@ -73,9 +82,17 @@ func TestEnsureDatabase_CancelDeletesAndClosesDatabase(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			// Arrange
-			suiteConnectionString := container.MustConnectionString(t.Context(), "sslmode=disable")
+			connectionString := container.MustConnectionString(t.Context(), "sslmode=disable")
 
-			db, cancel, err := EnsureDatabase(t.Context(), t.Name(), suiteConnectionString)
+			rootDB, err := sql.Open("postgres", connectionString)
+			require.NoError(t, err)
+
+			t.Cleanup(func() { _ = rootDB.Close() })
+
+			connectionURL, err := url.Parse(connectionString)
+			require.NoError(t, err)
+
+			db, cancel, err := ensureDatabase(t.Context(), rootDB, connectionURL, t.Name())
 			require.NoError(t, err)
 			require.NotNil(t, cancel)
 
@@ -89,12 +106,9 @@ func TestEnsureDatabase_CancelDeletesAndClosesDatabase(t *testing.T) {
 			row := db.QueryRowContext(t.Context(), "select current_database()")
 			require.ErrorContains(t, row.Err(), "database is closed")
 
-			suiteDB, err := sql.Open("postgres", suiteConnectionString)
-			require.NoError(t, err)
-
 			dbName := toSafeDBName(t.Name())
 
-			err = suiteDB.QueryRowContext(t.Context(), "SELECT datname FROM pg_database WHERE datname = $1", dbName).Scan(new(""))
+			err = rootDB.QueryRowContext(t.Context(), "SELECT datname FROM pg_database WHERE datname = $1", dbName).Scan(new(""))
 			require.ErrorIs(t, err, sql.ErrNoRows)
 		})
 	}

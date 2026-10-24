@@ -39,11 +39,8 @@ func (p *SinglePostgresTestSuite) TestDatabaseIsDeletedAfterwards() {
 
 	// This must be run AFTER TearDown, hence the weird construction. t.Context is also cancelled at this point
 	t.Cleanup(func() {
-		db, err := sql.Open("postgres", p.suiteConnectionString)
-		require.NoError(t, err)
-
 		// Act
-		err = db.QueryRowContext(context.Background(), "SELECT datname FROM pg_database WHERE datname = $1", dbName).Scan(new(""))
+		err := p.rootDB.QueryRowContext(context.Background(), "SELECT datname FROM pg_database WHERE datname = $1", dbName).Scan(new(""))
 
 		// Assert
 		assert.ErrorIs(t, err, sql.ErrNoRows)

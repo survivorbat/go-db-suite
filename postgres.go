@@ -2,6 +2,7 @@ package dbsuite
 
 import (
 	"database/sql"
+	"net/url"
 
 	_ "github.com/lib/pq" // Ensure postgres is available
 	"github.com/stretchr/testify/require"
@@ -21,8 +22,11 @@ type Postgres struct {
 	// cancel must be executed in TearDownTest to drop the created database and close the connection
 	cancel func() error
 
-	// suiteConnectionString is used to determine the test-specific connection string
-	suiteConnectionString string
+	// rootDB is the global connection used to create and drop databases
+	rootDB *sql.DB
+
+	// rootConnectionURL is used to determine the test-specific connection string
+	rootConnectionURL *url.URL
 
 	// cancelSuite will cancel the entire suite and terminate the container
 	cancelSuite func() error
@@ -39,7 +43,13 @@ func (s *Postgres) SetupSuite() {
 	container, err := postgrescontainer.Run(t.Context(), s.ContainerImage, postgrescontainer.BasicWaitStrategies())
 	require.NoError(t, err)
 
-	s.suiteConnectionString = container.MustConnectionString(t.Context(), "sslmode=disable")
+	connectionString := container.MustConnectionString(t.Context(), "sslmode=disable")
+
+	s.rootConnectionURL, err = url.Parse(connectionString)
+	require.NoError(t, err)
+
+	s.rootDB, err = sql.Open("postgres", connectionString)
+	require.NoError(t, err)
 
 	s.cancelSuite = func() error {
 		return container.Terminate(t.Context())
@@ -50,7 +60,7 @@ func (s *Postgres) SetupSuite() {
 func (s *Postgres) SetupTest() {
 	t := s.T()
 
-	db, cancel, err := EnsureDatabase(t.Context(), t.Name(), s.suiteConnectionString)
+	db, cancel, err := ensureDatabase(t.Context(), s.rootDB, s.rootConnectionURL, t.Name())
 	require.NoError(t, err)
 
 	s.DB = db
